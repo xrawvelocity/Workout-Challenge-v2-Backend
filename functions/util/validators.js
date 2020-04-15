@@ -36,14 +36,14 @@ exports.validateSignupData = (data) => {
   if (isEmpty(data.password)) {
     errors.password = "Must not be empty";
   } else if (!isPassword(data.password)) {
-    error.password = "Must be alphanumeric and be 6–20 characters"
+    error.password = "Must be alphanumeric (6–20 characters)"
   }
   if (data.password !== data.confirmPassword)
     errors.confirmPassword = "Passwords must match";
   if (isEmpty(data.handle)) {
     errors.handle = "Must not be empty";
   } else if(!isUsername(data.handle)) {
-    errors.handle = "Must be alphanumeric and be 5–16 characters"
+    errors.handle = "Must be alphanumeric (5–16 characters)"
   }
   return {
     errors,
