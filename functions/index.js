@@ -9,6 +9,7 @@ const {
   commentOnPost,
   likePost,
   unlikePost,
+  deletePost
 } = require("./handlers/posts");
 const {
   signUp,
@@ -25,10 +26,11 @@ app.get("/posts", getAllPosts);
 app.post("/posts", FBAuth, createPost);
 app.get("/post/:postId", getPost);
 // delete post
+app.delete("/post/:postId", FBAuth, deletePost)
 // like post
-app.post("/post/:postId/like", FBAuth, likePost);
+app.get("/post/:postId/like", FBAuth, likePost);
 // unlike post
-app.post("/post/:postId/unlike", FBAuth, unlikePost);
+app.get("/post/:postId/unlike", FBAuth, unlikePost);
 // create comment
 app.post("/post/:postId/comment", FBAuth, commentOnPost);
 
