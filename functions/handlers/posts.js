@@ -12,7 +12,8 @@ exports.getAllPosts = (req, res) => {
           createdAt: doc.data().createdAt,
           likeCount: doc.data().likeCount,
           commentCount: doc.data().commentCount,
-          userImage: doc.data().userImage
+          userImage: doc.data().userImage,
+          name: doc.data().name,
         });
       });
       return res.json(posts);
@@ -23,6 +24,7 @@ exports.getAllPosts = (req, res) => {
 exports.createPost = (req, res) => {
   const newPost = {
     body: req.body.body,
+    name: req.user.name,
     userHandle: req.user.handle,
     userImage: req.user.imageUrl,
     createdAt: new Date().toISOString(),
@@ -80,6 +82,7 @@ exports.commentOnPost = (req, res) => {
     body: req.body.body,
     createdAt: new Date().toISOString(),
     postId: req.params.postId,
+    name: req.user.name,
     userHandle: req.user.handle,
     userImage: req.user.imageUrl,
   };
