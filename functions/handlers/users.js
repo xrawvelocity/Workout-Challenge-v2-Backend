@@ -18,6 +18,7 @@ exports.signUp = (req, res) => {
     password: req.body.password,
     confirmPassword: req.body.confirmPassword,
     handle: req.body.handle,
+    name: req.body.name,
   };
 
   const { valid, errors } = validateSignupData(newUser);
@@ -31,7 +32,7 @@ exports.signUp = (req, res) => {
     .get()
     .then((doc) => {
       if (doc.exists) {
-        return res.status(400).json({ handle: "this handle is already taken" });
+        return res.status(400).json({ handle: "This username is already taken" });
       } else {
         return firebase
           .auth()
@@ -46,6 +47,7 @@ exports.signUp = (req, res) => {
       token = idToken;
       const userCredentials = {
         handle: newUser.handle,
+        name: newUser.name,
         email: newUser.email,
         createdAt: new Date().toISOString(),
         imageUrl: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${noImg}?alt=media`,
