@@ -31,7 +31,9 @@ exports.signUp = (req, res) => {
     .get()
     .then((doc) => {
       if (doc.exists) {
-        return res.status(400).json({ handle: "This username is already taken" });
+        return res
+          .status(400)
+          .json({ handle: "This username is already taken" });
       } else {
         return firebase
           .auth()
@@ -50,6 +52,7 @@ exports.signUp = (req, res) => {
         createdAt: new Date().toISOString(),
         imageUrl: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${noImg}?alt=media`,
         userId,
+        followerCount: 0,
       };
       return db.doc(`/users/${newUser.handle}`).set(userCredentials);
     })
@@ -142,6 +145,26 @@ exports.getUserDetails = (req, res) => {
           postId: doc.id,
         });
       });
+      return db
+        .collection("follows")
+        .where("userHandle", "==", req.params.handle)
+        .get();
+    })
+    .then((data) => {
+      userData.following = [];
+      data.forEach((doc) => {
+        userData.following.push(doc.data());
+      });
+      return db
+        .collection("follows")
+        .where("otherUser", "==", req.params.handle)
+        .get();
+    })
+    .then((data) => {
+      userData.followers = [];
+      data.forEach((doc) => {
+        userData.followers.push(doc.data());
+      });
       return res.json(userData);
     })
     .catch((err) => {
@@ -182,12 +205,33 @@ exports.getAuthenticatedUser = (req, res) => {
         userData.notifications.push({
           recipient: doc.data().recipient,
           sender: doc.data().sender,
+          senderImage: doc.data().senderImage,
           createdAt: doc.data().createdAt,
           postId: doc.data().postId,
           type: doc.data().type,
           read: doc.data().read,
           notificationId: doc.id,
         });
+      });
+      return db
+        .collection("follows")
+        .where("userHandle", "==", req.user.handle)
+        .get();
+    })
+    .then((data) => {
+      userData.following = [];
+      data.forEach((doc) => {
+        userData.following.push(doc.data());
+      });
+      return db
+        .collection("follows")
+        .where("otherUser", "==", req.user.handle)
+        .get();
+    })
+    .then((data) => {
+      userData.followers = [];
+      data.forEach((doc) => {
+        userData.followers.push(doc.data());
       });
       return res.json(userData);
     })
@@ -263,4 +307,126 @@ exports.markNotificationsRead = (req, res) => {
       console.error(err);
       return res.status(500).json({ error: err.code });
     });
+};
+
+// follow a user
+exports.followUser = (req, res) => {
+  const followDocument = db
+    .collection("follows")
+    .where("userHandle", "==", req.user.handle)
+    .where("userImage", "==", req.user.imageUrl)
+    .where("otherUser", "==", req.params.handle)
+    .limit(1);
+
+  const userDocument = db.doc(`/users/${req.params.handle}`);
+
+  let userData;
+
+  userDocument
+    .get()
+    .then((doc) => {
+      if (doc.exists) {
+        userData = doc.data();
+        userData.handle = doc.id;
+        return followDocument.get();
+      } else {
+        return res.status(404).json({ error: "User not found" });
+      }
+    })
+    .then((data) => {
+      if (data.empty) {
+        return db
+          .collection("follows")
+          .add({
+            otherUser: req.params.handle,
+            userHandle: req.user.handle,
+            userImage: req.user.imageUrl
+          })
+          .then(() => {
+            userData.followerCount++;
+            return userDocument.update({
+              followerCount: userData.followerCount,
+            });
+          })
+          .then(() => {
+            return res.json(userData);
+          });
+      } else {
+        return res.status(400).json({ error: "User already followed" });
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).json({ error: err.code });
+    });
+};
+
+exports.unfollowUser = (req, res) => {
+  const followDocument = db
+    .collection("follows")
+    .where("userHandle", "==", req.user.handle)
+    .where("userImage", "==", req.user.imageUrl)
+    .where("otherUser", "==", req.params.handle)
+    .limit(1);
+
+  const userDocument = db.doc(`/users/${req.params.handle}`);
+
+  let userData;
+
+  userDocument
+    .get()
+    .then((doc) => {
+      if (doc.exists) {
+        userData = doc.data();
+        userData.handle = doc.id;
+        return followDocument.get();
+      } else {
+        return res.status(404).json({ error: "User not found" });
+      }
+    })
+    .then((data) => {
+      if (data.empty) {
+        return res.status(400).json({ error: "User not followed" });
+      } else {
+        return db
+          .doc(`/follows/${data.docs[0].id}`)
+          .delete()
+          .then(() => {
+            userData.followerCount--;
+            return userDocument.update({
+              followerCount: userData.followerCount,
+            });
+          })
+          .then(() => {
+            return res.json(userData);
+          });
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).json({ error: err.code });
+    });
+};
+
+exports.getAllUsers = (req, res) => {
+  db.collection("users")
+    .get()
+    .then((data) => {
+      let users = [];
+      data.forEach((doc) => {
+        users.push({
+          handle: doc.id,
+          bio: doc.data().bio,
+          createdAt: doc.data().created,
+          email: doc.data().email,
+          followerCount: doc.data().follower,
+          imageUrl: doc.data().imageUrl,
+          location: doc.data().location,
+          userId: doc.data().userId,
+          website: doc.data().website,
+        });
+      });
+      return res.json(users);
+    })
+    .catch((err) => console.error(err));
 };

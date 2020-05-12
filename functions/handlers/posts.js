@@ -108,6 +108,7 @@ exports.likePost = (req, res) => {
   const likeDocument = db
     .collection("likes")
     .where("userHandle", "==", req.user.handle)
+    .where("userImage", "==", req.user.imageUrl)
     .where("postId", "==", req.params.postId)
     .limit(1);
 
@@ -133,6 +134,7 @@ exports.likePost = (req, res) => {
           .add({
             postId: req.params.postId,
             userHandle: req.user.handle,
+            userImage: req.user.imageUrl
           })
           .then(() => {
             postData.likeCount++;

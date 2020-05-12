@@ -31,6 +31,9 @@ const {
   getAuthenticatedUser,
   getUserDetails,
   markNotificationsRead,
+  followUser,
+  unfollowUser,
+  getAllUsers,
 } = require("./handlers/users");
 
 //posts routes
@@ -47,9 +50,12 @@ app.post("/signup", signUp);
 app.post("/login", logIn);
 app.get("/user", FBAuth, getAuthenticatedUser);
 app.post("/user", FBAuth, addUserDetails);
+app.get("/users", FBAuth, getAllUsers);
 app.post("/user/image", FBAuth, uploadImage);
 app.get("/user/:handle", getUserDetails);
 app.post("/notifications", FBAuth, markNotificationsRead);
+app.get("/user/:handle/follow", FBAuth, followUser);
+app.get("/user/:handle/unfollow", FBAuth, unfollowUser);
 
 exports.api = functions.region("us-east1").https.onRequest(app);
 
@@ -69,6 +75,7 @@ exports.createNotificationOnLike = functions
             createdAt: new Date().toISOString(),
             recipient: doc.data().userHandle,
             sender: snapshot.data().userHandle,
+            senderImage: snapshot.data().userImage,
             type: "like",
             read: false,
             postId: doc.id,
@@ -83,6 +90,46 @@ exports.createNotificationOnLike = functions
 exports.deleteNotificationOnUnlike = functions
   .region("us-east1")
   .firestore.document("likes/{id}")
+  .onDelete((snapshot) => {
+    return db
+      .doc(`/notifications/${snapshot.id}`)
+      .delete()
+      .catch((err) => {
+        console.error(err);
+        return;
+      });
+  });
+
+//otherUser = recipient || snapshot
+//userHandle = sender || doc
+exports.createNotificationOnFollow = functions
+  .region("us-east1")
+  .firestore.document("follows/{id}")
+  .onCreate((snapshot) => {
+    return db
+      .doc(`/users/${snapshot.data().userHandle}`)
+      .get()
+      .then((doc) => {
+        if (doc.exists && doc.data().userHandle !== snapshot.data().otherUser) {
+          return db.doc(`/notifications/${snapshot.id}`).set({
+            createdAt: new Date().toISOString(),
+            sender: doc.data().handle,
+            recipient: snapshot.data().otherUser,
+            senderImage: doc.data().imageUrl,
+            type: "follow",
+            read: false,
+            followId: doc.id,
+          });
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  });
+
+exports.deleteNotificationOnUnfollow = functions
+  .region("us-east1")
+  .firestore.document("follows/{id}")
   .onDelete((snapshot) => {
     return db
       .doc(`/notifications/${snapshot.id}`)
@@ -109,6 +156,7 @@ exports.createNotificationOnComment = functions
             createdAt: new Date().toISOString(),
             recipient: doc.data().userHandle,
             sender: snapshot.data().userHandle,
+            senderImage: snapshot.data().userImage,
             type: "comment",
             read: false,
             postId: doc.id,
@@ -130,14 +178,46 @@ exports.onUserImageChange = functions
     if (change.before.data().imageUrl !== change.after.data().imageUrl) {
       console.log("image has changed");
       const batch = db.batch();
-      return db
-        .collection("posts")
+      return db.collection("posts")
         .where("userHandle", "==", change.before.data().handle)
         .get()
         .then((data) => {
           data.forEach((doc) => {
             const post = db.doc(`/posts/${doc.id}`);
             batch.update(post, { userImage: change.after.data().imageUrl });
+          });
+          return db
+            .collection("comments")
+            .where("userHandle", "==", change.before.data().handle)
+            .get();
+        })
+
+        .then((data) => {
+          data.forEach((doc) => {
+            const post = db.doc(`/comments/${doc.id}`);
+            batch.update(post, { userImage: change.after.data().imageUrl });
+          });
+
+          return db
+            .collection("follows")
+            .where("userHandle", "==", change.before.data().handle)
+            .get();
+        })
+        .then((data) => {
+          data.forEach((doc) => {
+            const post = db.doc(`/follows/${doc.id}`);
+            batch.update(post, { userImage: change.after.data().imageUrl });
+          });
+
+          return db
+            .collection("notifications")
+            .where("sender", "==", change.before.data().handle)
+            .get();
+        })
+        .then((data) => {
+          data.forEach((doc) => {
+            const post = db.doc(`/notifications/${doc.id}`);
+            batch.update(post, { senderImage: change.after.data().imageUrl });
           });
           return batch.commit();
         });
