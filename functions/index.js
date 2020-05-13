@@ -35,6 +35,12 @@ const {
   unfollowUser,
   getAllUsers,
 } = require("./handlers/users");
+const {
+  getAllChats,
+  getChat,
+  createChat,
+  sendMessage,
+} = require("./handlers/chats");
 
 //posts routes
 app.get("/posts", getAllPosts);
@@ -56,6 +62,12 @@ app.get("/user/:handle", getUserDetails);
 app.post("/notifications", FBAuth, markNotificationsRead);
 app.get("/user/:handle/follow", FBAuth, followUser);
 app.get("/user/:handle/unfollow", FBAuth, unfollowUser);
+
+//messages routes
+app.get("/chats", FBAuth, getAllChats);
+app.get("/chat/:chatId", FBAuth, getChat);
+app.post("/chats", FBAuth, createChat);
+app.post("/chat/:chatId", FBAuth, sendMessage);
 
 exports.api = functions.region("us-east1").https.onRequest(app);
 
@@ -178,7 +190,8 @@ exports.onUserImageChange = functions
     if (change.before.data().imageUrl !== change.after.data().imageUrl) {
       console.log("image has changed");
       const batch = db.batch();
-      return db.collection("posts")
+      return db
+        .collection("posts")
         .where("userHandle", "==", change.before.data().handle)
         .get()
         .then((data) => {
