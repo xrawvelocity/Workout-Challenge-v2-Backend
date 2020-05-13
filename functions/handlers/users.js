@@ -339,6 +339,7 @@ exports.followUser = (req, res) => {
           .collection("follows")
           .add({
             otherUser: req.params.handle,
+            otherUserImage: userData.imageUrl,
             userHandle: req.user.handle,
             userImage: req.user.imageUrl
           })
