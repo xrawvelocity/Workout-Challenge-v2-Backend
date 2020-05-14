@@ -43,7 +43,7 @@ exports.validateSignupData = (data) => {
   if (isEmpty(data.handle)) {
     errors.handle = "Must not be empty";
   } else if(!isUsername(data.handle)) {
-    error.handle = "Must be alphanumeric and contain 5–16 characters"
+    errors.handle = "Must be alphanumeric and contain 5–16 characters"
   }
   return {
     errors,
