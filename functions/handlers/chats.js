@@ -12,9 +12,9 @@ exports.getAllChats = (req, res) => {
           chats.push({
             chatId: doc.id,
             userOne: doc.data().userOne,
-            userOneImage: doc.data().userOneImage,
             userTwo: doc.data().userTwo,
-            userTwoImage: doc.data().userTwoImage,
+            userOneRead: doc.data().userOneRead,
+            userTwoRead: doc.data().userTwoRead,
             messages: doc.data().messages,
             createdAt: doc.data().createdAt,
           });
@@ -27,20 +27,22 @@ exports.getAllChats = (req, res) => {
 exports.createChat = (req, res) => {
   const newChat = {
     userOne: req.user.handle,
-    userOneImage: req.user.imageUrl,
     userTwo: req.body.userTwoHandle,
-    userTwoImage: req.body.userTwoImageUrl,
     messages: [],
+    userOneRead: true,
+    userTwoRead: true,
     createdAt: new Date().toISOString(),
   };
 
   db.collection("chats")
     .where("userOne", "==", req.body.userTwoHandle)
+    .where("userTwo", "==", req.user.handle)
     .get()
     .then((snapshot) => {
       if (snapshot.empty) {
         db.collection("chats")
           .where("userTwo", "==", req.body.userTwoHandle)
+          .where("userOne", "==", req.user.handle)
           .get()
           .then((secondSnapshot) => {
             if (secondSnapshot.empty) {
@@ -49,7 +51,9 @@ exports.createChat = (req, res) => {
                 .then((doc) => {
                   const resChat = newChat;
                   resChat.chatId = doc.id;
-                  res.json({ message: `chat ${doc.id} created successfully` });
+                  res.json({
+                    message: `chat ${doc.id} created successfully`,
+                  });
                 })
                 .catch((err) => {
                   console.error(err);
@@ -60,7 +64,7 @@ exports.createChat = (req, res) => {
             }
           });
       } else {
-        res.status(400).json({ chat: "This chat already exists" });
+        res.status(400).json({ chat: "This chat already exists" });        
       }
     });
 };
