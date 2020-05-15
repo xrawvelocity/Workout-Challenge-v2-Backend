@@ -12,7 +12,9 @@ exports.getAllChats = (req, res) => {
           chats.push({
             chatId: doc.id,
             userOne: doc.data().userOne,
+            userOneImage: doc.data().userOneImage,
             userTwo: doc.data().userTwo,
+            userTwoImage: doc.data().userTwoImage,
             userOneRead: doc.data().userOneRead,
             userTwoRead: doc.data().userTwoRead,
             messages: doc.data().messages,
@@ -27,7 +29,9 @@ exports.getAllChats = (req, res) => {
 exports.createChat = (req, res) => {
   const newChat = {
     userOne: req.user.handle,
+    userOneImage: req.user.imageUrl,
     userTwo: req.body.userTwoHandle,
+    userTwoImage: req.body.userTwoImageUrl,
     messages: [],
     userOneRead: true,
     userTwoRead: true,
