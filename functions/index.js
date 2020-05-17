@@ -40,6 +40,7 @@ const {
   getChat,
   createChat,
   sendMessage,
+  markMessagesRead
 } = require("./handlers/chats");
 
 //posts routes
@@ -68,6 +69,7 @@ app.get("/chats", FBAuth, getAllChats);
 app.get("/chat/:chatId", FBAuth, getChat);
 app.post("/chats", FBAuth, createChat);
 app.post("/chat/:chatId", FBAuth, sendMessage);
+app.post("/chat/:chatId/notifications", FBAuth, markMessagesRead);
 
 exports.api = functions.region("us-east1").https.onRequest(app);
 

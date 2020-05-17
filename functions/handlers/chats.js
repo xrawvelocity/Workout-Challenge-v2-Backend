@@ -116,3 +116,24 @@ exports.sendMessage = (req, res) => {
       res.status(500).json({ error: "something went wrong" });
     });
 };
+
+exports.markMessagesRead = (req, res) => {
+  const chatDocument = db.doc(`/chat/${req.params.chatId}`)
+  chatDocument
+    .get()
+    .then((doc) => {
+      if (!doc.exists) {
+        return res.status(404).json({ error: "Chat not found" });
+      }
+      if (doc.data().userOne === req.user.handle) {
+        return chatDocument.update({ userOneRead: true })
+      } else if (doc.data().userTwo === req.user.handle) {
+        return chatDocument.update({ userTwoRead: true })
+      }
+      return res.json({ message: "Chat messages marked read" });
+    })
+    .catch((err) => {
+      console.error(err);
+      return res.status(500).json({ error: err.code });
+    });
+};
