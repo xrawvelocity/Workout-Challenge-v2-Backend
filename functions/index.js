@@ -212,6 +212,29 @@ exports.onUserImageChange = functions
           });
 
           return db
+            .collection("chats")
+            .where("userOne", "==", change.before.data().handle)
+            .get();
+        })
+        .then((data) => {
+          data.forEach((doc) => {
+            const post = db.doc(`/chats/${doc.id}`);
+            batch.update(post, { userOneImage: change.after.data().imageUrl });
+          });
+
+          return db
+            .collection("chats")
+            .where("userTwo", "==", change.before.data().handle)
+            .get();
+        })
+
+        .then((data) => {
+          data.forEach((doc) => {
+            const post = db.doc(`/chats/${doc.id}`);
+            batch.update(post, { userTwoImage: change.after.data().imageUrl });
+          });
+
+          return db
             .collection("follows")
             .where("userHandle", "==", change.before.data().handle)
             .get();
@@ -266,4 +289,34 @@ exports.onPostDelete = functions
         return batch.commit();
       })
       .catch((err) => console.error(err));
+  });
+
+exports.createNotificationOnMessage = functions
+  .region("us-east1")
+  .firestore.document("chats/{id}")
+  .on("child_changed", (snapshot) => {
+    return db
+      .doc(`/chats/${snapshot.data().chatId}`)
+      .get()
+      .then((doc) => {
+        if (
+          doc.exists &&
+          doc.data().userOne === snapshot.data().messages[snapshot.data().messages.length - 1].userOne
+        ) {
+          return db.doc(`/chats/${snapshot.data().chatId}`).update({
+            userTwoRead: false,
+          });
+        } else if (
+          doc.exists &&
+          doc.data().userTwo === snapshot.data().messages[snapshot.data().messages.length - 1].userTwo
+        ) {
+          return db.doc(`/chats/${snapshot.data().chatId}`).update({
+            userOneRead: false,
+          });
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        return;
+      });
   });
