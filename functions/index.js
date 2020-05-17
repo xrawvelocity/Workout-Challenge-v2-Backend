@@ -294,26 +294,38 @@ exports.onPostDelete = functions
 exports.createNotificationOnMessage = functions
   .region("us-east1")
   .firestore.document("chats/{id}")
-  .onUpdate((snapshot) => {
-    return db
-      .doc(`/chats/${snapshot.data().chatId}`)
+  .onUpdate((change) => {
+    console.log(change.before.data());
+    console.log(change.after.data());
+    db.collection("chats")
+      .where("userOne", "==", change.after.data().userOne)
+      .where("userTwo", "==", change.after.data().userTwo)
       .get()
-      .then((doc) => {
-        if (
-          doc.exists &&
-          doc.data().userOne === snapshot.data().messages[snapshot.data().messages.length - 1].userOne
-        ) {
-          return db.doc(`/chats/${snapshot.data().chatId}`).update({
-            userTwoRead: false,
-          });
-        } else if (
-          doc.exists &&
-          doc.data().userTwo === snapshot.data().messages[snapshot.data().messages.length - 1].userTwo
-        ) {
-          return db.doc(`/chats/${snapshot.data().chatId}`).update({
-            userOneRead: false,
-          });
-        }
+      .then((data) => {
+        data.forEach((doc) => {
+          console.log(doc);
+          if (
+            doc.exists &&
+            change.after.data().userOne ===
+              change.after.data().messages[
+                change.after.data().messages.length - 1
+              ].sender
+          ) {
+            return db.doc(`/chats/${doc.id}`).update({
+              userTwoRead: false,
+            });
+          } else if (
+            doc.exists &&
+            change.after.data().userTwo ===
+              change.after.data().messages[
+                change.after.data().messages.length - 1
+              ].sender
+          ) {
+            return db.doc(`/chats/${doc.id}`).update({
+              userOneRead: false,
+            });
+          }
+        });
       })
       .catch((err) => {
         console.error(err);
