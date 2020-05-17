@@ -294,7 +294,7 @@ exports.onPostDelete = functions
 exports.createNotificationOnMessage = functions
   .region("us-east1")
   .firestore.document("chats/{id}")
-  .on("child_changed", (snapshot) => {
+  .onUpdate((snapshot) => {
     return db
       .doc(`/chats/${snapshot.data().chatId}`)
       .get()
