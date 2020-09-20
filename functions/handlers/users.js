@@ -37,6 +37,7 @@ exports.signUp = (req, res) => {
       } else {
         return firebase
           .auth()
+          .setPersistence(firebase.auth.Auth.Persistence.LOCAL)
           .createUserWithEmailAndPassword(newUser.email, newUser.password);
       }
     })
@@ -84,6 +85,7 @@ exports.logIn = (req, res) => {
 
   firebase
     .auth()
+    .setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     .signInWithEmailAndPassword(user.email, user.password)
     .then((data) => {
       return data.user.getIdToken();
